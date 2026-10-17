@@ -1,0 +1,25 @@
+services:
+  news:
+    build: .
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      NEWS_API_KEY: ${NEWS_API_KEY:?Set NEWS_API_KEY in .env}
+      CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-7200}
+      STALE_IF_ERROR_SECONDS: ${STALE_IF_ERROR_SECONDS:-86400}
+      NEWS_API_DAILY_BUDGET: ${NEWS_API_DAILY_BUDGET:-90}
+      UPSTREAM_TIMEOUT_MS: ${UPSTREAM_TIMEOUT_MS:-8000}
+      UPSTREAM_RETRY_SECONDS: ${UPSTREAM_RETRY_SECONDS:-60}
+    volumes:
+      - headlines:/data
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+volumes:
+  headlines:

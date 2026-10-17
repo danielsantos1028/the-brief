@@ -1,0 +1,63 @@
+worker_processes auto;
+pid /tmp/nginx.pid;
+error_log stderr warn;
+events { worker_connections 1024; }
+http {
+  include /etc/nginx/mime.types;
+  default_type application/octet-stream;
+  server_tokens off;
+  sendfile on;
+  keepalive_timeout 20;
+  client_header_timeout 10s;
+  client_body_timeout 10s;
+  client_max_body_size 1k;
+  client_body_temp_path /tmp/nginx-client;
+  proxy_temp_path /tmp/nginx-proxy;
+  fastcgi_temp_path /tmp/nginx-fastcgi;
+  uwsgi_temp_path /tmp/nginx-uwsgi;
+  scgi_temp_path /tmp/nginx-scgi;
+  # The API emits sanitized structured request logs. Avoid duplicate access logs
+  # and reopening root-owned Docker stdout descriptors after dropping privileges.
+  access_log off;
+  # Aggregate protection is intentional: no trust in spoofable client-IP headers.
+  limit_req_zone $server_name zone=news:1m rate=10r/s;
+  limit_req_status 429;
+  gzip on;
+  gzip_types text/css application/javascript application/json image/svg+xml;
+
+  server {
+    listen ${PORT};
+    root /app/dist/client;
+    index index.html;
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options DENY always;
+    add_header Referrer-Policy no-referrer always;
+    add_header Permissions-Policy 'camera=(), microphone=(), geolocation=()' always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'" always;
+
+    location ^~ /api/ {
+      limit_except GET { deny all; }
+      limit_req zone=news burst=30 nodelay;
+      proxy_pass http://127.0.0.1:3001;
+      proxy_http_version 1.1;
+      proxy_set_header Host localhost;
+      proxy_set_header Connection "";
+      proxy_set_header Authorization "";
+      proxy_set_header Cookie "";
+      proxy_set_header X-Api-Key "";
+      proxy_set_header X-Forwarded-For "";
+      proxy_set_header X-Real-IP "";
+      proxy_connect_timeout 2s;
+      proxy_read_timeout 25s;
+      proxy_hide_header X-Powered-By;
+    }
+    location = /health {
+      access_log off;
+      proxy_pass http://127.0.0.1:3001;
+      proxy_connect_timeout 2s;
+      proxy_read_timeout 3s;
+    }
+    location ~ /\. { deny all; }
+    location / { try_files $uri $uri/ =404; }
+  }
+}

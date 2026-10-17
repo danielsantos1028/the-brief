@@ -1,0 +1,6 @@
+.env*
+!.env.example
+.cache
+quarantine
+node_modules
+dist

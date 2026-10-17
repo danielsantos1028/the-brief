@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.cache/
+coverage/
+*.log
+.DS_Store
+playwright-report/
+test-results/
+.vercel/
+quarantine/
+.agents/
+skills-lock.json
+.env*
+!.env.example
