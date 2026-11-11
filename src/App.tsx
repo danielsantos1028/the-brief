@@ -8,6 +8,7 @@ import {
   type NewsResponse,
 } from "../shared/news";
 import { ArticleCard } from "./ArticleCard";
+import { AboutProject } from "./AboutProject";
 
 function initialCategory(): Category {
   const parsed = categorySchema.safeParse(
@@ -175,13 +176,18 @@ function Feed({ category }: { category: Category }) {
 
 export function App() {
   const [category, setCategory] = useState<Category>(initialCategory);
+  const [about, setAbout] = useState(() => new URLSearchParams(window.location.search).get("tab") === "about");
   useEffect(() => {
-    const onPop = () => setCategory(initialCategory());
+    const onPop = () => {
+      setCategory(initialCategory());
+      setAbout(new URLSearchParams(window.location.search).get("tab") === "about");
+    };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
   function selectCategory(next: Category) {
-    if (next === category) return;
+    if (next === category && !about) return;
+    setAbout(false);
     setCategory(next);
     const url = new URL(window.location.href);
     url.search =
@@ -194,7 +200,7 @@ export function App() {
   return (
     <>
       <a className="skip-link" href="#headlines">
-        Skip to headlines
+        Skip to content
       </a>
       <header className="masthead shell">
         <div className="masthead-top">
@@ -217,20 +223,34 @@ export function App() {
             <span>Powered by NewsAPI</span>
           </div>
         </div>
-        <nav className="categories" aria-label="News categories">
+        <nav className="categories" aria-label="News categories and project information">
           {categories.map((item) => (
             <button
               key={item}
-              aria-pressed={category === item}
-              className={category === item ? "category active" : "category"}
+              aria-pressed={!about && category === item}
+              className={!about && category === item ? "category active" : "category"}
               onClick={() => selectCategory(item)}
             >
               {categoryLabels[item]}
             </button>
           ))}
+          <button
+            className={about ? "category project-tab active" : "category project-tab"}
+            aria-pressed={about}
+            onClick={() => {
+              if (about) return;
+              setAbout(true);
+              const url = new URL(window.location.href);
+              url.search = new URLSearchParams({ tab: "about" }).toString();
+              window.history.pushState(null, "", url);
+            }}
+          >
+            About the project
+          </button>
         </nav>
       </header>
       <main className="shell" id="headlines" tabIndex={-1}>
+        {about ? <AboutProject /> : <>
         <div className="section-heading">
           <div>
             <span className="eyebrow">YOUR DAILY PERSPECTIVE</span>
@@ -248,6 +268,7 @@ export function App() {
           </p>
         </div>
         <Feed key={category} category={category} />
+        </>}
       </main>
       <footer className="footer shell">
         <div>
