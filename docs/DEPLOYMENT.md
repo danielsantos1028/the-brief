@@ -76,3 +76,7 @@ An alternative is to put only the static frontend on Vercel and keep the supplie
 The implementation uses the documented seven headline categories, requests at most 100 results per category, and uses `X-Api-Key` authentication. It is configured for U.S. headlines, which the current endpoint parameter documentation lists. [Top headlines](https://newsapi.org/docs/endpoints/top-headlines), [authentication](https://newsapi.org/docs/authentication).
 
 NewsAPI's Developer plan is restricted to development and testing, not staging or production. A deployed public reader needs an appropriate subscription. Demo mode exists for local preview and is explicitly rejected in production. A proxy does not remove this requirement. [NewsAPI pricing](https://newsapi.org/pricing).
+
+### API admission protection
+
+Each API process limits news requests to 60 per minute before cache access and returns 429 with Retry-After. This aggregate, in-memory safeguard is not shared across instances and can throttle legitimate traffic. Configure a Vercel Firewall rate-limit rule for all public API routes and aliases before production use; inspect and test the deployed rule separately. Do not trust client-provided forwarding headers.

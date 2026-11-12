@@ -290,3 +290,18 @@ describe("configuration", () => {
     ).toThrow("Invalid configuration");
   });
 });
+
+
+describe("request admission", () => {
+  it("rejects excess news requests before accessing the store", async () => {
+    const get = vi.fn(async () => ({ version: 1 as const, fetchedAt: Date.now(), articles: [] }));
+    const store = { get, set: vi.fn(), reserveRequest: vi.fn() };
+    const app = buildApp(new NewsService(readConfig({ DEMO_MODE: "true" }), store, async () => []));
+    for (let i = 0; i < 60; i++) expect((await app.inject("/api/news")).statusCode).toBe(200);
+    const blocked = await app.inject("/api/news");
+    expect(blocked.statusCode).toBe(429);
+    expect(Number(blocked.headers["retry-after"])).toBeGreaterThan(0);
+    expect(get).toHaveBeenCalledTimes(60);
+    await app.close();
+  });
+});
